@@ -11,6 +11,11 @@ import scaffoldmaker.scaffolds as sc
 from opencmiss.exporter.webgl import ArgonSceneExporter as WebGLExporter
 from opencmiss.exporter.thumbnail import ArgonSceneExporter as ThumbnailExporter
 
+from sparc.curation.tools.manifests import ManifestDataFrame
+from sparc.curation.tools.ondisk import OnDiskFiles
+from sparc.curation.tools.utilities import convert_to_bytes
+from sparc.curation.tools.scaffold_annotations import get_errors, fix_error, get_confirmation_message
+
 def create_dataset(dataset_dir, mesh_config_file, argon_document):
     create_folders(dataset_dir)
     generate_mesh(os.path.join(dataset_dir, "primary"), mesh_config_file)
@@ -59,6 +64,20 @@ def exportFile(exporter, argon_document):
     })
     exporter.export()
 
+def annotateScaffold(dataset_dir):
+    max_size = convert_to_bytes('3MiB')
+    OnDiskFiles().setup_dataset(dataset_dir, max_size)
+    ManifestDataFrame().setup_dataframe(dataset_dir)
+    errors = get_errors()
+    while len(errors) != 0:
+        for error in errors:
+                print(error.get_error_message())
+        for error in errors:
+                fix_error(error)
+        OnDiskFiles().setup_dataset(dataset_dir, max_size)
+        ManifestDataFrame().setup_dataframe(dataset_dir)
+        errors = get_errors()
+
 def main():
     parser = argparse.ArgumentParser(description='Create a SPARC dataset.')
     parser.add_argument("dataset_dir", help='directory to create.')
@@ -73,6 +92,8 @@ def main():
     # Create dataset
     create_dataset(dataset_dir, mesh_config_file, argon_document)
 
+    # Dataset annotation
+    annotateScaffold(dataset_dir)
 
 if __name__ == "__main__":
     main()
