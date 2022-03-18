@@ -19,7 +19,6 @@ def create_dataset(dataset_dir, mesh_config_file, argon_document):
 def create_folders(path):
     folder_dir = []
     folder_dir.append(os.path.join(path, "derivative", "Scaffold"))
-    folder_dir.append(os.path.join(path, "derivative"))
     folder_dir.append(os.path.join(path, "docs"))
     folder_dir.append(os.path.join(path, "primary"))
     for filename in folder_dir:
@@ -41,7 +40,7 @@ def generate_mesh(output_dir, mesh_config_file):
     scaffoldType = scaffoldConfig["generator_settings"]["scaffoldPackage"]
     scaffoldPackage = sc.Scaffolds_decodeJSON(scaffoldType)
     scaffoldPackage.generate(region, applyTransformation=False)
-    file_name = os.path.join(output_dir, "mesh.exf")
+    file_name = os.path.join(output_dir, "scaffold_mesh.exf")
     region.writeFile(file_name)
 
 def generate_webGL(output_dir, argon_document):
@@ -71,7 +70,7 @@ def main():
     mesh_config_file = args.mesh_config_file
     argon_document = args.argon_document
 
-    # Create folders
+    # Create dataset
     create_dataset(dataset_dir, mesh_config_file, argon_document)
 
 
