@@ -36,7 +36,8 @@ requires = [
     'opencmiss.zinc',
     'opencmiss.exporter',
     'scaffoldmaker',
-    'sparc-curation-tools',
+    'sparc-curation-tools >= 0.4.2',
+    'PySide2'
 ]
 
 setup(
