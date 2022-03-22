@@ -65,7 +65,7 @@ def _generate_web_gl(output_dir, argon_document):
 def _export_file(exporter, argon_document):
     exporter.set_filename(argon_document)
     exporter.set_parameters({
-        "prefix": 'prefix',
+        "prefix": 'scaffold',
         "numberOfTimeSteps": None,
         "initialTime": None,
         "finishTime": None,
