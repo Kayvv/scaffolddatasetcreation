@@ -17,9 +17,12 @@ from sparc.curation.tools.utilities import convert_to_bytes
 from sparc.curation.tools.scaffold_annotations import get_errors, fix_error, get_confirmation_message
 
 def create_dataset(dataset_dir, mesh_config_file, argon_document):
+    # Create dataset
     create_folders(dataset_dir)
     generate_mesh(os.path.join(dataset_dir, "primary"), mesh_config_file)
     generate_webGL((os.path.join(dataset_dir, "derivative", "Scaffold")), argon_document)
+    # Dataset annotation
+    annotateScaffold(dataset_dir)
 
 def create_folders(path):
     folder_dir = []
@@ -65,18 +68,24 @@ def exportFile(exporter, argon_document):
     exporter.export()
 
 def annotateScaffold(dataset_dir):
+    errors = getCurrentErrors(dataset_dir)
+    previous_error = []
+    while len(errors) != 0:
+        for error in errors:
+            print(error.get_error_message())
+            fix_error(error)
+            if error.get_error_message() in previous_error:
+                print("This error can't be fixed automatically.")
+                break
+            else:
+                previous_error.append(error.get_error_message())
+        errors = getCurrentErrors(dataset_dir)
+
+def getCurrentErrors(dataset_dir):
     max_size = convert_to_bytes('3MiB')
     OnDiskFiles().setup_dataset(dataset_dir, max_size)
     ManifestDataFrame().setup_dataframe(dataset_dir)
-    errors = get_errors()
-    while len(errors) != 0:
-        for error in errors:
-                print(error.get_error_message())
-        for error in errors:
-                fix_error(error)
-        OnDiskFiles().setup_dataset(dataset_dir, max_size)
-        ManifestDataFrame().setup_dataframe(dataset_dir)
-        errors = get_errors()
+    return get_errors()
 
 def main():
     parser = argparse.ArgumentParser(description='Create a SPARC dataset.')
@@ -91,9 +100,6 @@ def main():
 
     # Create dataset
     create_dataset(dataset_dir, mesh_config_file, argon_document)
-
-    # Dataset annotation
-    annotateScaffold(dataset_dir)
 
 if __name__ == "__main__":
     main()
