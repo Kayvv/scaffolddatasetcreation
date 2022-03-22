@@ -24,7 +24,7 @@ Create a Scaffold based SPARC dataset from a scaffold description file and an Ar
 **positional arguments:**
 
 ================== =================================================
-  dataset_dir       existing directory to create dataset in.
+  dataset_dir       root directory for new dataset.
   mesh_config_file  mesh config json file to generate scaffold.
   argon_document    argon document file to generate webGL files.
 ================== =================================================
