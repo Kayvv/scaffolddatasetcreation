@@ -1,0 +1,4 @@
+opencmiss.zinc
+opencmiss.exporter
+scaffoldmaker
+sparc-curation-tools
