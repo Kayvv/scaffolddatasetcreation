@@ -31,7 +31,9 @@ Create a Scaffold based SPARC dataset from a scaffold description file and an Ar
 
 **optional arguments:**
 
--h, --help        show this help message and exit
+=============     =================================
+ -h, --help        show this help message and exit
+=============     =================================
 
 Run
 ---
