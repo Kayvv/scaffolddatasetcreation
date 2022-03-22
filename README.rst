@@ -44,7 +44,7 @@ For bash shells, or:
 
 ::
 
-  venv_scaffolddatasetcreation\\Scripts\\activate
+  venv_scaffolddatasetcreation\Scripts\activate
 
 For a windows :code:`cmd` prompt.
 
