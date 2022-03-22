@@ -1,20 +1,31 @@
 
-SPARC Scaffold Dataset Creation Script
-======================================
+SPARC Dataset Creation
+======================
 
-A script to help with create SPARC datasets.
+A package to help with creating SPARC datasets.
+Currently, support is available to create scaffold based SPARC datasets.
 
-How to use (can also be found using :code:`python src\scaffolddatasetcreation\creator.py -h`):
+Install
+-------
 
-usage: :code:`creator.py [-h] dataset_dir mesh_config_file argon_document`
+SPARC dataset tools can be installed from PyPi.org with the following command::
+
+  pip install sparc-dataset-tools
+
+Usage
+-----
+
+How to use (can also be found using :code:`create-scaffold-dataset -h`):
+
+usage: :code:`create-scaffold-dataset [-h] dataset_dir mesh_config_file argon_document`
 
 Create a Scaffold based SPARC dataset from a scaffold description file and an Argon document.
 
 **positional arguments:**
 
 ================== =================================================
-  dataset_dir       directory to create.
-  mesh_config_file  mesh config json file to generate mesh exf file.
+  dataset_dir       existing directory to create dataset in.
+  mesh_config_file  mesh config json file to generate scaffold.
   argon_document    argon document file to generate webGL files.
 ================== =================================================
 
@@ -22,48 +33,40 @@ Create a Scaffold based SPARC dataset from a scaffold description file and an Ar
 
   -h, --help        show this help message and exit
 
+Run
+---
 
-**Running the script:**
-
-To run the script create a virtual environment with a tool like :code:`virtualenv`. 
-Install it with :code:`pip install virtualenv`.
-
-Use :code:`virtualenv` to create a new virtual environment:
+To run the application create a virtual environment.
 
 ::
 
-  virtualenv venv_scaffolddatasetcreation
+  python -m venv venv_sparc
 
-Activate the virtual environment:
+Activate the virtual environment::
 
-::
+  source venv_sparc/bin/activate
 
-  source venv_scaffolddatasetcreation/bin/activate
+For bash shells, or::
 
-For bash shells, or:
-
-::
-
-  venv_scaffolddatasetcreation\Scripts\activate
+  venv_sparc\Scripts\activate
 
 For a windows :code:`cmd` prompt.
 
-With the activated virtual environment install the script requirements
+With the activated virtual environment install the package.
 
 ::
 
-  pip install -r requirements.txt
+  pip install sparc-dataset-tools
 
-Then execute the script to print out the usage information to test the script:
+Then execute the application to print out the usage information to test the script.
 
 ::
 
-  cd src/scaffolddatasetcreation
-  python creator.py -h
+  create-scaffold-dataset -h
 
 Examples:
 ---------
 
 ::
 
-  python creator.py <dataset_dir> <mesh_config_file> <argon_document>
+  create-scaffold-dataset <dataset_dir> <mesh_config_file> <argon_document>
