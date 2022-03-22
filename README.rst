@@ -4,11 +4,11 @@ SPARC Scaffold Dataset Creation Script
 
 A script to help with create SPARC datasets.
 
-How to use (can also be found using :code:`python src\scaffolddatasetcreation\scaffolddatasetcreation.py -h`):
+How to use (can also be found using :code:`python src\scaffolddatasetcreation\creator.py -h`):
 
-usage: :code:`scaffolddatasetcreation.py [-h] dataset_dir mesh_config_file argon_document`
+usage: :code:`creator.py [-h] dataset_dir mesh_config_file argon_document`
 
-Create a SPARC dataset.
+Create a Scaffold based SPARC dataset from a scaffold description file and an Argon document.
 
 **positional arguments:**
 
@@ -58,11 +58,12 @@ Then execute the script to print out the usage information to test the script:
 
 ::
 
-  python scaffolddatasetcreation.py -h
+  cd src/scaffolddatasetcreation
+  python creator.py -h
 
 Examples:
 ---------
 
 ::
 
-  python scaffolddatasetcreation.py <dataset_dir> <mesh_config_file> <argon_document>
+  python creator.py <dataset_dir> <mesh_config_file> <argon_document>
