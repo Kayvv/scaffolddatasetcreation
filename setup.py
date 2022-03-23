@@ -33,8 +33,8 @@ software_licence = readfile("LICENSE", True)
 software_licence = '\n  '.join(software_licence)
 
 requires = [
-    'opencmiss.zinc',
-    'opencmiss.exporter',
+    'opencmiss.zinc >= 3.6.0',
+    'opencmiss.exporter >= 0.3.0',
     'scaffoldmaker',
     'sparc-curation-tools >= 0.4.2',
     'PySide2'
