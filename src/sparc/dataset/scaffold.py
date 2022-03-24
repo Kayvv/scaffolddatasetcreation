@@ -46,8 +46,10 @@ def _create_folder(path):
 def _generate_mesh(output_dir, mesh_config_file):
     context = Context("MeshGenerator")
     region = context.createRegion()
-    f = open(mesh_config_file)
-    scaffoldConfig = json.load(f)
+
+    with open(mesh_config_file) as f:
+        scaffoldConfig = json.load(f)
+
     scaffoldType = scaffoldConfig["generator_settings"]["scaffoldPackage"]
     scaffoldPackage = sc.Scaffolds_decodeJSON(scaffoldType)
     scaffoldPackage.generate(region, applyTransformation=False)
@@ -75,17 +77,23 @@ def _export_file(exporter, argon_document):
 
 def _annotate_scaffold(dataset_dir):
     errors = _get_current_errors(dataset_dir)
-    previous_error = []
-    while len(errors) != 0:
+    errors_fix_attempted_for = []
+    annotation_failure = False
+    while not annotation_failure and len(errors):
         for error in errors:
-            print(error.get_error_message())
+            error_message = error.get_error_message()
+            print(f"Attempting to fix: {error_message}")
             fix_error(error)
-            if error.get_error_message() in previous_error:
+            if error_message in errors_fix_attempted_for:
                 print("This error can't be fixed automatically.")
+                annotation_failure = True
                 break
             else:
-                previous_error.append(error.get_error_message())
+                errors_fix_attempted_for.append(error_message)
         errors = _get_current_errors(dataset_dir)
+
+    if annotation_failure:
+        print("Could not annotate scaffold successfully.")
 
 
 def _get_current_errors(dataset_dir):
