@@ -37,7 +37,8 @@ requires = [
     'opencmiss.exporter >= 0.3.0',
     'scaffoldmaker',
     'sparc-curation-tools >= 0.4.2',
-    'PySide2'
+    'PySide2',
+    'dulwich',
 ]
 
 setup(
