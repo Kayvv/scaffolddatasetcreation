@@ -83,6 +83,7 @@ def checkout(repo, target: bytes, force: bool = False):
             except dulwich.porcelain.Error:
                 pass
             update_head(repo, LOCAL_BRANCH_PREFIX + checkout_target)
+            target_tree = parse_tree(repo, checkout_target)
         else:
             update_head(repo, target, detached=True)
 
@@ -104,8 +105,7 @@ def checkout(repo, target: bytes, force: bool = False):
 
     repo.unstage(tracked_changes)
 
-    target_sha = target_tree.sha()
-    repo.reset_index(target_sha.hexdigest())
+    repo.reset_index(target_tree.id)
 
     # Remove the untracked file which are in the current_file_set.
     for file in get_untracked_paths(repo.path, repo.path, repo.open_index(), exclude_ignored=True):
