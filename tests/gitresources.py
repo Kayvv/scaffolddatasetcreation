@@ -1,15 +1,20 @@
 import os.path
+import stat
 import sys
+from typing import Union
 
 import dulwich.repo
 import dulwich.porcelain
 import dulwich.client
 import dulwich.index
 
-from dulwich.index import get_unstaged_changes
+from dulwich import porcelain
+from dulwich.file import ensure_dir_exists
+
+from dulwich.objects import TreeEntry, Tree
 from dulwich.refs import LOCAL_BRANCH_PREFIX
-from dulwich.objectspec import parse_tree
-from dulwich.porcelain import get_tree_changes, update_head, get_untracked_paths
+from dulwich.objectspec import parse_tree, to_bytes
+from dulwich.porcelain import update_head
 
 LOCAL_REMOTE_PREFIX = b"refs/remotes/"
 
@@ -34,39 +39,45 @@ def setup_resources():
 
 
 def dulwich_checkout(repo, target):
-    checkout(repo, target)
+    checkout_branch(repo, target)
 
 
-class DirNotCleanError(Exception):
+class AbortCheckout(Exception):
     """Indicates that the working directory is not clean while trying to checkout."""
 
 
-def checkout(repo, target: bytes, force: bool = False):
-    """switch branches or restore working tree files
+def iter_tree_contents(
+        store, tree_id, *, include_trees: bool = False):
+    """Iterate the contents of a tree and all subtrees.
+
+    Iteration is depth-first pre-order, as in e.g. os.walk.
+
     Args:
-      repo: dulwich Repo object
-      target: branch name or commit sha to checkout
-      force: true or not to force checkout
+      tree_id: SHA1 of the tree.
+      include_trees: If True, include tree objects in the iteration.
+    Returns: Iterator over TreeEntry namedtuples for all the objects in a
+        tree.
     """
-    # Check repo status.
-    if not force:
-        index = repo.open_index()
-        for file in get_tree_changes(repo)['modify']:
-            if file in index:
-                raise DirNotCleanError('trying to checkout when working directory not clean')
+    if tree_id is None:
+        return
+    # This could be fairly easily generalized to >2 trees if we find a use
+    # case.
+    todo = [TreeEntry(b"", stat.S_IFDIR, tree_id)]
+    while todo:
+        entry = todo.pop()
+        if stat.S_ISDIR(entry.mode):
+            extra = []
+            tree = store[entry.sha]
+            assert isinstance(tree, Tree)
+            for subentry in tree.iteritems(name_order=True):
+                extra.append(subentry.in_path(entry.path))
+            todo.extend(reversed(extra))
+        if not stat.S_ISDIR(entry.mode) or include_trees:
+            yield entry
 
-        normalizer = repo.get_blob_normalizer()
-        filter_callback = normalizer.checkin_normalize
 
-        unstaged_changes = list(get_unstaged_changes(index, repo.path, filter_callback))
-        for file in unstaged_changes:
-            if file in index:
-                raise DirNotCleanError('trying to checkout when working directory not clean')
-
-    current_tree = parse_tree(repo, repo.head())
-    target_tree = parse_tree(repo, target)
-
-    # Update head.
+def _update_head_during_checkout_branch(repo, target):
+    checkout_target = None
     if target == b'HEAD':  # Do not update head while trying to checkout to HEAD.
         pass
     elif target in repo.refs.keys(base=LOCAL_BRANCH_PREFIX):
@@ -79,39 +90,95 @@ def checkout(repo, target: bytes, force: bool = False):
         if config.has_section(section):
             checkout_target = target.replace(name + b"/", b"")
             try:
-                dulwich.porcelain.branch_create(repo, checkout_target, (LOCAL_REMOTE_PREFIX + target).decode())
-            except dulwich.porcelain.Error:
+                porcelain.branch_create(repo, checkout_target, (LOCAL_REMOTE_PREFIX + target).decode())
+            except porcelain.Error:
                 pass
             update_head(repo, LOCAL_BRANCH_PREFIX + checkout_target)
-            target_tree = parse_tree(repo, checkout_target)
         else:
             update_head(repo, target, detached=True)
 
-    # Un-stage files in the current_tree or target_tree.
-    tracked_changes = []
-    for change in repo.open_index().changes_from_tree(repo.object_store, target_tree.id):
-        file = change[0][0] or change[0][1]  # No matter whether the file is added, modified, or deleted.
-        try:
-            current_entry = current_tree.lookup_path(repo.object_store.__getitem__, file)
-        except KeyError:
-            current_entry = None
-        try:
-            target_entry = target_tree.lookup_path(repo.object_store.__getitem__, file)
-        except KeyError:
-            target_entry = None
+    return checkout_target
 
-        if current_entry or target_entry:
-            tracked_changes.append(file.decode())
 
-    repo.unstage(tracked_changes)
+def checkout_branch(repo, target: Union[bytes, str], force: bool = False):
+    """switch branches or restore working tree files
+    Args:
+      repo: dulwich Repo object
+      target: branch name or commit sha to checkout
+      force: true or not to force checkout
+    """
+    target = to_bytes(target)
 
-    repo.reset_index(target_tree.id)
+    current_tree = parse_tree(repo, repo.head())
+    target_tree = parse_tree(repo, target)
 
-    # Remove the untracked file which are in the current_file_set.
-    for file in get_untracked_paths(repo.path, repo.path, repo.open_index(), exclude_ignored=True):
-        try:
-            current_tree.lookup_path(repo.object_store.__getitem__, file.encode())
-        except KeyError:
-            pass
-        else:
-            os.remove(os.path.join(repo.path, file))
+    if force:
+        repo.reset_index(target_tree.id)
+        _update_head_during_checkout_branch(repo, target)
+    else:
+        status_report = porcelain.status(repo)
+        changes = list(set(status_report[0]['add'] + status_report[0]['delete'] + status_report[0]['modify'] + status_report[1]))
+        index = 0
+        while index < len(changes):
+            change = changes[index]
+            try:
+                current_tree.lookup_path(repo.object_store.__getitem__, change)
+                try:
+                    target_tree.lookup_path(repo.object_store.__getitem__, change)
+                    index += 1
+                except KeyError:
+                    raise AbortCheckout('Your local changes to the following files would be overwritten by checkout: ' + change.decode())
+            except KeyError:
+                changes.pop(index)
+
+        # Update head.
+        checkout_target = _update_head_during_checkout_branch(repo, target)
+        if checkout_target is not None:
+            target_tree = parse_tree(repo, checkout_target)
+
+        dealt_with = []
+        repo_index = repo.open_index()
+        for entry in iter_tree_contents(repo.object_store, target_tree.id):
+            dealt_with.append(entry.path)
+            if entry.path in changes:
+                continue
+            full_path = os.path.join(os.fsencode(repo.path), entry.path)
+            blob = repo.object_store[entry.sha]
+            ensure_dir_exists(os.path.dirname(full_path))
+            st = porcelain.build_file_from_blob(blob, entry.mode, full_path)
+            st_tuple = (
+                entry.mode,
+                st.st_ino,
+                st.st_dev,
+                st.st_nlink,
+                st.st_uid,
+                st.st_gid,
+                st.st_size,
+                st.st_atime,
+                st.st_mtime,
+                st.st_ctime,
+            )
+            st = st.__class__(st_tuple)
+            repo_index[entry.path] = dulwich.index.index_entry_from_stat(st, entry.sha, 0)
+
+        repo_index.write()
+
+        for entry in iter_tree_contents(repo.object_store, current_tree.id):
+            if entry.path not in dealt_with:
+                repo.unstage([entry.path])
+
+    # Remove the untracked files which are in the current_file_set.
+    repo_index = repo.open_index()
+    for change in repo_index.changes_from_tree(repo.object_store, current_tree.id):
+        path_change = change[0]
+        if path_change[1] is None:
+            file_name = path_change[0]
+            full_path = os.path.join(repo.path, file_name.decode())
+            if os.path.isfile(full_path):
+                os.remove(full_path)
+            dir_path = os.path.dirname(full_path)
+            while dir_path != repo.path:
+                is_empty = len(os.listdir(dir_path)) == 0
+                if is_empty:
+                    os.rmdir(dir_path)
+                dir_path = os.path.dirname(dir_path)
