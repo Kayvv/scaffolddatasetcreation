@@ -4,9 +4,9 @@ import json
 
 import scaffoldmaker.scaffolds as sc
 
-from opencmiss.exporter.webgl import ArgonSceneExporter as WebGLExporter
-from opencmiss.exporter.thumbnail import ArgonSceneExporter as ThumbnailExporter
-from opencmiss.zinc.context import Context
+from cmlibs.exporter.webgl import ArgonSceneExporter as WebGLExporter
+from cmlibs.exporter.thumbnail import ArgonSceneExporter as ThumbnailExporter
+from cmlibs.zinc.context import Context
 
 from sparc.curation.tools.manifests import ManifestDataFrame
 from sparc.curation.tools.ondisk import OnDiskFiles
